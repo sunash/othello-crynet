@@ -1,5 +1,7 @@
 #include "board.h"
 
+using namespace std;
+
 /*
  * Make a standard 8x8 othello board and initialize it to the standard setup.
  */
@@ -68,6 +70,20 @@ bool Board::hasMoves(Side side) {
 }
 
 /*
+ * Returns all the valid moves.
+ */
+vector<Move> Board::getMoves(Side side) {
+	vector<Move> moves;
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+			Move move(i, j);
+            if (checkMove(&move, side)){moves.push_back(move);}
+        }
+    }
+    return moves;
+}
+
+/*
  * Returns true if a move is legal for the given side; false otherwise.
  */
 bool Board::checkMove(Move *m, Side side) {
@@ -107,7 +123,6 @@ bool Board::checkMove(Move *m, Side side) {
 void Board::doMove(Move *m, Side side) {
     // A NULL move means pass.
     if (m == NULL) return;
-
     // Ignore if move is invalid.
     if (!checkMove(m, side)) return;
 
@@ -160,6 +175,81 @@ int Board::countBlack() {
  */
 int Board::countWhite() {
     return taken.count() - black.count();
+}
+
+/*
+ * Current score, with positives meaning more of AI's color.
+ */
+int Board::score(Side side) {
+	if(side == BLACK) return count(BLACK) - count(WHITE);
+    return count(WHITE) - count(BLACK);
+}
+
+/*
+ * Scores a specified move based on the following heuristics:
+ * base score is increase in number of myside color tiles
+ * 3x multiplier for corner placement
+ * 2x multiplier for edge placement not adjacent to a corner
+ * -2x multiplier for edge placement adjacent to a corner
+ * -3x multiplier for non-edge placement diagonally adjacent to a corner
+ */
+int Board::scoreMove(Move *m, Side side) {
+	Board * future = copy();
+	future->doMove(m, side);
+	int diff = future->score(side) - score(side);
+	if(m->getX() == 0 || m->getX() == 7)
+	{
+		if(m->getY() == 0 || m->getY() == 7) diff *= 3;
+		else if(m->getY() == 1 || m->getY() == 6) diff *= -2;
+		else diff *= 2;
+	}
+	else if(m->getY() == 0 || m->getY() == 7)
+	{
+		if(m->getX() == 1 || m->getX() == 6) diff *= -2;
+		else diff *= 2;
+	}
+	else if(m->getY() == 1 || m->getY() == 6 )
+	{
+		if(m->getX() == 1 || m->getX() == 6) diff *= -3;
+	}
+	return diff;
+}
+
+/*
+ * Scores a specified board state relative to a side after a move
+ */
+int Board::scoreBoard(Move *m, Side side) {
+	Board * future = copy();
+	future->doMove(m, side);
+	return future->score(side);
+}
+
+int Board::bestMove(vector<Move> moves, Side side) {
+	int maxscore = 0;
+	int indmax = 0;
+	for(unsigned int i = 0; i < moves.size(); i++)
+	{
+		if(scoreMove(&moves[i], side) > maxscore)
+		{
+			maxscore = scoreMove(&moves[i], side);
+			indmax = i;
+		}
+	}
+	return indmax;
+}
+
+int Board::simpBest(vector<Move> moves, Side side) {
+	int maxscore = 0;
+	int indmax = 0;
+	for(unsigned int i = 0; i < moves.size(); i++)
+	{
+		if(scoreBoard(&moves[i], side) > maxscore)
+		{
+			maxscore = scoreBoard(&moves[i], side);
+			indmax = i;
+		}
+	}
+	return indmax;
 }
 
 /*

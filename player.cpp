@@ -1,7 +1,5 @@
 #include "player.h"
 
-// I changed this
-
 /*
  * Constructor for the player; initialize everything here. The side your AI is
  * on (BLACK or WHITE) is passed in as "side". The constructor must finish 
@@ -10,12 +8,10 @@
 Player::Player(Side side) {
     // Will be set to true in test_minimax.cpp.
     testingMinimax = false;
-
-    /* 
-     * TODO: Do any initialization you need to do here (setting up the board,
-     * precalculating things, etc.) However, remember that you will only have
-     * 30 seconds.
-     */
+	myside = side;
+	if(myside == WHITE) otherside = BLACK;
+	else otherside = WHITE;
+    board = new Board();
 }
 
 /*
@@ -36,10 +32,36 @@ Player::~Player() {
  * The move returned must be legal; if there are no valid moves for your side,
  * return NULL.
  */
-Move *Player::doMove(Move *opponentsMove, int msLeft) {
-    /* 
-     * TODO: Implement how moves your AI should play here. You should first
-     * process the opponent's opponents move before calculating your own move
-     */ 
-    return NULL;
+Move *Player::doMove(Move *opponentsMove, int msLeft) { 
+	board->doMove(opponentsMove, otherside);
+	if(!board->hasMoves(myside)) return NULL;
+   	vector<Move> moves = board->getMoves(myside);
+	if(!testingMinimax)
+	{
+		Move bestie = moves[board->bestMove(moves, myside)];
+		Move* outm = new Move(bestie.getX(), bestie.getY());
+		board->doMove(outm, myside);
+		return outm;
+	}
+	Board * future;
+	vector<Move> moves_other;
+	int maxscore = -1000;
+	int indmax = 0;
+	for(unsigned int i = 0; i < moves.size(); i++)
+	{
+		future = board->copy();
+		future->doMove(&(moves[i]), myside);
+		moves_other = future->getMoves(otherside);
+		Move best_other = moves_other[future->simpBest(moves_other, otherside)];
+		future->doMove(&best_other, otherside);
+		if(future->score(myside) > maxscore)
+		{
+			maxscore = future->scoreBoard(&best_other, myside);
+			indmax = i;
+		}
+	}
+	Move bestie = moves[indmax];
+	Move* outm = new Move(bestie.getX(), bestie.getY());
+	board->doMove(outm, myside);
+	return outm;
 }
