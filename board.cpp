@@ -194,6 +194,7 @@ int Board::score(Side side) {
  * -3x multiplier for non-edge placement diagonally adjacent to a corner
  */
 int Board::scoreMove(Move *m, Side side) {
+	if(m == NULL) return 0;
 	Board * future = copy();
 	future->doMove(m, side);
 	int diff = future->score(side) - score(side);
